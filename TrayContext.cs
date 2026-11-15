@@ -151,6 +151,7 @@ public sealed class TrayContext : ApplicationContext
         {
             // a path test that never reached its own restore is undone before anything else
             if (BackupPathTest.RecoverPending(_firmware) is { } recovered) ChangeLog.Add(ChangeSource.Test, recovered);
+            if (BoostSlotTest.RecoverPending(_firmware) is { } boostBack) ChangeLog.Add(ChangeSource.Test, boostBack);   // (#354 test build)
             Ec.OpenBackupWrites(Writable);
         }
         if (_settings.MigrateExperimentalFlag(_device?.MatchedPrefix(_firmware), _device is { Tier: Tier.Experimental }))
@@ -769,16 +770,71 @@ public sealed class TrayContext : ApplicationContext
         ShowBackupTestResult(text, path);
     }
 
-    private void ShowBackupTestResult(string text, string? reportPath)
+    private void ShowBackupTestResult(string text, string? reportPath, string? title = null)
     {
+        title ??= Lang.T("bpt_title");
         if (reportPath != null) text += Environment.NewLine + Environment.NewLine + string.Format(Lang.T("bpt_saved"), reportPath);
         var card = reportPath != null
-            ? new GhostCardForm("//PATH-TEST", Lang.T("bpt_title"), text, Lang.T("bpt_open"), Lang.T("set_close"),
+            ? new GhostCardForm("//PATH-TEST", title, text, Lang.T("bpt_open"), Lang.T("set_close"),
                 () => { try { System.Diagnostics.Process.Start("explorer.exe", "/select,\"" + reportPath + "\""); } catch { } })
-            : new GhostCardForm("//PATH-TEST", Lang.T("bpt_title"), text, Lang.T("set_close"), "", () => { });
+            : new GhostCardForm("//PATH-TEST", title, text, Lang.T("set_close"), "", () => { });
         _bptCard = card;
         card.Show();
         card.Activate();
+    }
+
+    // ---------------- Fan Boost check (#354 test build, BoostSlotTest) ----------------
+    private Task<BoostSlotTest.Result>? _bstTask;
+    private CancellationTokenSource? _bstCts;
+
+    private void ShowBoostCheck()
+    {
+        if (!BoostSlotTest.AvailableFor(_device, _firmware)) return;
+        if (_bptCard is { IsDisposed: false }) { _bptCard.Activate(); return; }
+        if (_bptTask is { IsCompleted: false } || _bstTask is { IsCompleted: false }) return;
+        var card = new GhostCardForm("//FAN-BOOST", Lang.T("bst_title"), Lang.T("bst_intro"),
+            Lang.T("bst_start"), Lang.T("fw_dlg_later"), RunBoostCheck);
+        _bptCard = card;
+        card.Show();
+        card.Activate();
+    }
+
+    private async void RunBoostCheck()
+    {
+        var dev = _device!;
+        var cts = _bstCts = new CancellationTokenSource();
+        var run = new GhostCardForm("//FAN-BOOST", Lang.T("bst_title"), Lang.T("bst_running"),
+            Lang.T("pt_cancel"), "", () => { try { cts.Cancel(); } catch { } });
+        _bptCard = run;
+        run.Show();
+        run.Activate();
+
+        BoostSlotTest.Result? result = null;
+        string error = "";
+        using (EcBusy())
+        {
+            try
+            {
+                _bstTask = BoostSlotTest.RunAsync(dev, AppVersion(), _firmware, new Progress<string>(_ => { }), cts.Token);
+                result = await _bstTask;
+            }
+            catch (Exception ex) { error = ex.Message; }
+        }
+        if (!run.IsDisposed) run.Close();
+
+        string? path = result != null ? BoostSlotTest.SaveReport(result) : null;
+        if (result != null) ChangeLog.Add(ChangeSource.Test, Lang.T("bst_title"), result.Verdict + (result.Detail.Length > 0 ? " - " + result.Detail : ""));
+        string text = result == null ? string.Format(Lang.T("bpt_res_error"), error)
+            : result.Verdict switch
+            {
+                BoostSlotTest.Verdict.FansUp => Lang.T("bst_res_up"),
+                BoostSlotTest.Verdict.NoReaction => Lang.T("bst_res_none"),
+                BoostSlotTest.Verdict.AlreadyOn => Lang.T("bst_res_on"),
+                BoostSlotTest.Verdict.RestoreUnconfirmed => Lang.T("bst_res_restore"),
+                BoostSlotTest.Verdict.Cancelled => Lang.T("bpt_res_cancel"),
+                _ => string.Format(Lang.T("bpt_res_error"), result.Detail),
+            };
+        ShowBackupTestResult(text, path, Lang.T("bst_title"));
     }
 
     private (string text, Color color) TierBadge()
@@ -885,6 +941,7 @@ public sealed class TrayContext : ApplicationContext
         if (Ec.OnBackupPath)
         {
             if (BackupPathTest.RecoverPending(_firmware) is { } recovered) ChangeLog.Add(ChangeSource.Test, recovered);
+            if (BoostSlotTest.RecoverPending(_firmware) is { } boostBack) ChangeLog.Add(ChangeSource.Test, boostBack);   // (#354 test build)
             Ec.OpenBackupWrites(Writable);
             if (!Writable) PromptBackupTest();
         }
@@ -998,6 +1055,12 @@ public sealed class TrayContext : ApplicationContext
             var bpt = new ToolStripMenuItem(Lang.T("bpt_title") + "…");
             bpt.Click += (_, _) => ShowBackupTest();
             menu.Items.Add(bpt);
+            if (BoostSlotTest.AvailableFor(_device, _firmware))   // (#354 test build)
+            {
+                var bst = new ToolStripMenuItem(Lang.T("bst_title") + "…");
+                bst.Click += (_, _) => ShowBoostCheck();
+                menu.Items.Add(bst);
+            }
         }
 
         // The overlay pair and the crosshair can be hidden from the menu (Settings -> System -> Tray menu).
@@ -2853,8 +2916,15 @@ public sealed class TrayContext : ApplicationContext
         new StatsReportCard(report, error).Show();
     }
 
+    /// <summary>
+    /// A test build made for one reporter (version x.y.90 and up, e.g. 1.46.97): it must not
+    /// offer a release, or the reporter installs it over the test and the test is gone.
+    /// </summary>
+    internal static bool IsTestBuild => (typeof(TrayContext).Assembly.GetName().Version?.Build ?? 0) >= 90;
+
     private void MaybeCheckForUpdates()
     {
+        if (IsTestBuild) return;
         if (!_settings.UpdateCheckEnabled) return;
         if (DateTime.UtcNow - _settings.LastUpdateCheckUtc < TimeSpan.FromHours(24)) return;
 
@@ -3582,6 +3652,7 @@ public sealed class TrayContext : ApplicationContext
         if (_main is { IsDisposed: false }) _main.StopPowerTest(wait: true);
         // Same for a path test: cancel it and let its restore run before the process goes.
         if (_bptTask is { IsCompleted: false }) { try { _bptCts?.Cancel(); _bptTask.Wait(8000); } catch { } }
+        if (_bstTask is { IsCompleted: false }) { try { _bstCts?.Cancel(); _bstTask.Wait(8000); } catch { } }
         _main?.Close();
         _overlay?.Close();
         _crosshair?.Close();
