@@ -1321,7 +1321,13 @@ public static class Devices
                 CpuRpmAddr16 = 0xC8, CpuRpmAddr = 0xC9, GpuRpmAddr16 = 0xCA, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "Flo827", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/127",
                 CreditIssues = Issues("Flo827:127,128,129") },
-        new() { Name = "MSI Summit E16 AI Studio A1VETG",   FirmwarePrefixes = new[] { "1596EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // fork SummitPro: same board MS-1596 also ships as the SummitPro 16 AI A2HVETG (EC 1596EMS1.306,
+        // BIOS E1596IMS.30F). Measured on that machine 2026-11-19: profile 0xD2 (C1/C4/C2), fan mode 0xD4
+        // (0D auto / 8D curve / 1D silent), CPU curve 0x69/0x72, GPU curve 0x81/0x8A, Cooler Boost 0x98 bit 7,
+        // charge 0xD7, keyboard 0xD3, super battery 0xEB; tachometers 16-bit 0xC8:C9 / 0xCA:CB.
+        new() { Name = "MSI Summit E16 AI Studio A1VETG, SummitPro 16 AI A2HVETG", FirmwarePrefixes = new[] { "1596EMS1" }, Tier = Tier.Experimental,
+                CpuRpmAddr16 = 0xC8, CpuRpmAddr = 0xC9, GpuRpmAddr16 = 0xCA, GpuRpmAddr = 0xCB,
+                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige A16 AI+ A3HMG",        FirmwarePrefixes = new[] { "159KIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige 16 AI Evo B1MG",       FirmwarePrefixes = new[] { "15A1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Prestige 16 AI Studio B1VFG (15A2EMS1, board MS-15A2) - owner-verified by measurement
