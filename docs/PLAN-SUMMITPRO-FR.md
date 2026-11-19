@@ -119,7 +119,7 @@ Conséquence : l'entrée GhostDeck `1596EMS1` (« Summit E16 AI Studio A1VETG »
 ## Risques et garde-fous
 
 - Écritures EC : uniquement les adresses mesurées ci-dessus ; dump avant/après chaque test ;
-  courbe d'usine sauvegardée (`C:\Users\overl\crashreports\courbe_usine_backup.txt`).
+  courbe d'usine sauvegardée (`%USERPROFILE%\crashreports\courbe_usine_backup.txt`).
 - « Panic reset » GhostDeck (`Ctrl+Alt+F10`) : retour Balanced + courbe auto + Fan Boost off.
 - Garde firmware de GhostDeck : bloque les écritures automatiques après une mise à jour BIOS/EC.
 - Pas de flash firmware, pas de pilote noyau.
