@@ -1087,6 +1087,10 @@ public sealed partial class SettingsPage : ThemedPage
         // (the game-session report options live in the Gaming-overlay panel, next to the feature)
 
         var upd = new CardSection(Lang.T("set_grp_updates"), "");
+        // fork SummitPro: one switch for every network access (updates, model DB, notices, stats)
+        upd.AddRow("Mode léger : sans overlay, viseur, FPS, sessions de jeu, statistiques, tableau de bord (relancer l'app)",
+            Toggle(D.Settings.LiteMode, v => { D.Settings.LiteMode = v; D.SaveSettings(); }));
+        upd.AddRow("Mode hors ligne (aucun accès réseau)", Toggle(D.Settings.OfflineMode, v => { D.Settings.OfflineMode = v; NetPolicy.Offline = v; D.SaveSettings(); }));
         upd.AddRow(Lang.T("set_check_updates"), Toggle(D.Settings.UpdateCheckEnabled, v => { D.Settings.UpdateCheckEnabled = v; D.SaveSettings(); }));
         // Signed model database (ModelDb): which data is in effect, plus a manual fetch. The
         // check runs on its own cadence (every start, on the Models tab, and this button), so
@@ -1662,6 +1666,7 @@ public sealed partial class SettingsPage : ThemedPage
         };
         foreach (var t in tiles)
         {
+            if (t.g == SubGaming && D.Settings.LiteMode) continue;   // fork SummitPro: lite mode hides the Gaming group
             int gi = t.g;
             var tile = new GroupTile(t.glyph, Lang.T(t.titleKey), Lang.T(t.descKey), () => SelectSub(gi, save: true));
             _tiles.Add(tile);

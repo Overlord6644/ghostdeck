@@ -48,6 +48,7 @@ public static class Updater
     public static async Task<List<ReleaseInfo>> RecentAsync(int count)
     {
         var list = new List<ReleaseInfo>();
+        if (NetPolicy.Offline) return list;   // fork: offline mode
         try
         {
             using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
@@ -79,6 +80,7 @@ public static class Updater
 
     public static async Task<Result?> CheckAsync(Version current)
     {
+        if (NetPolicy.Offline) return null;   // fork: offline mode
         try
         {
             using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
@@ -137,6 +139,9 @@ public static class Updater
     /// </summary>
     public static async Task<Download> DownloadAsync(Result r, IProgress<int>? progress, Version? running = null, IProgress<string>? stage = null)
     {
+        // fork: never replace this build with an upstream release (see NetPolicy)
+        if (!NetPolicy.InstallDownloadedUpdates)
+            return new Download(null, Failure.Download, "updates are disabled in this build (SummitPro fork)");
         if (string.IsNullOrEmpty(r.AssetUrl)) return new Download(null, Failure.NoAsset, "the release has no " + AssetName);
         string dest;
         try { dest = Path.Combine(Path.GetDirectoryName(Environment.ProcessPath!)!, UpdateFile); }

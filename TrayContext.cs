@@ -105,6 +105,7 @@ public sealed class TrayContext : ApplicationContext
     public TrayContext()
     {
         _settings = AppSettings.Load();
+        NetPolicy.Offline = _settings.OfflineMode;   // fork SummitPro: offline unless the user turns it off
         // (#293) the per-model opt-in that mirrors the one curve into both fan tables
         Ec.MirrorToFan2 = dev => _firmware != null && _settings.BothTablesEnabledFor(dev.MatchedPrefix(_firmware));
         SettingsBackups.Keep = _settings.BackupKeep;
@@ -1986,6 +1987,7 @@ public sealed class TrayContext : ApplicationContext
 
     private void SetOverlay(bool on, bool osd)
     {
+        if (on && _settings.LiteMode) return;   // fork SummitPro: lite mode, no gaming overlay
         if (on)
         {
             if (_overlay is not { IsDisposed: false })
@@ -2015,6 +2017,7 @@ public sealed class TrayContext : ApplicationContext
 
     private void SetCrosshair(bool on, bool osd)
     {
+        if (on && _settings.LiteMode) return;   // fork SummitPro: lite mode, no crosshair
         if (on)
         {
             if (_crosshair is not { IsDisposed: false })
@@ -2147,7 +2150,7 @@ public sealed class TrayContext : ApplicationContext
     {
         bool overlayWants = OverlayVisible &&
             (_settings.HasMetric(OverlayMetric.Fps) || _settings.HasMetric(OverlayMetric.FrameTime));
-        FpsMonitor.SetActive(overlayWants || _statusWantsFps);
+        FpsMonitor.SetActive(!_settings.LiteMode && (overlayWants || _statusWantsFps));   // fork: lite mode = never
     }
 
     // Game-session summary: the FPS side comes from the monitor; the EC side (temps / fan RPM /
@@ -2155,6 +2158,7 @@ public sealed class TrayContext : ApplicationContext
     // only GhostDeck has. Raised on a worker thread → marshal the UI bits.
     private void OnGameSession(GameSession s)
     {
+        if (_settings.LiteMode) return;   // fork SummitPro: lite mode, no game-session report
         int maxCpu = 0, maxGpu = 0; long rpmCpu = 0, rpmGpu = 0; int rpmN = 0;
         var prof = new Dictionary<ProfileId, int>();
         foreach (var h in HwHistory.Window(DateTime.Now - s.Start))
@@ -2753,6 +2757,7 @@ public sealed class TrayContext : ApplicationContext
 
     private void MaybeSendStats(TimeSpan fetchAfter)
     {
+        if (_settings.LiteMode) return;   // fork SummitPro: lite mode, no statistics
         if (!_settings.StatsEnabled) return;
         if (_statsTask is { IsCompleted: false }) return;   // one run at a time; the next check picks up what is still due
         string week = Stats.CurrentWeek();
@@ -2798,6 +2803,7 @@ public sealed class TrayContext : ApplicationContext
     /// <summary>The consent card: once, a while after start, so it does not land on top of the firmware or notice cards.</summary>
     private void MaybeAskStats()
     {
+        if (_settings.LiteMode) return;   // fork SummitPro: lite mode, never ask for statistics consent
         bool first = !_settings.StatsAsked && !_settings.StatsEnabled;
         if (!first && !Stats.NeedsReconsent(_settings)) return;
         var t = new System.Windows.Forms.Timer { Interval = 25000 };

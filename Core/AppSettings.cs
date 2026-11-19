@@ -171,6 +171,8 @@ public sealed class AppSettings
     }
 
     public bool UpdateCheckEnabled { get; set; } = true;               // raz dziennie sprawdz GitHub Releases (+ ogloszenia)
+    public bool OfflineMode { get; set; } = true;                      // fork SummitPro: no network at all (updates, model DB, notices, stats)
+    public bool LiteMode { get; set; } = true;                         // fork SummitPro: no overlay, crosshair, FPS, game sessions, statistics, dashboard
     public int BackupKeep { get; set; } = 50;                          // ile kopii settings.json trzymac w backups/ (50-150, krok 25)
     public DateTime LastUpdateCheckUtc { get; set; } = DateTime.MinValue;
     // The model database has its OWN timestamp. It is a static file on the CDN with no request
@@ -840,6 +842,8 @@ public sealed class AppSettings
         TrueColorEnabled = src.TrueColorEnabled;
         TrueColorConfirmed = src.TrueColorConfirmed;
         UpdateCheckEnabled = src.UpdateCheckEnabled;
+        OfflineMode = src.OfflineMode;
+        LiteMode = src.LiteMode;
         DarkMode = src.DarkMode;
         TempAlertEnabled = src.TempAlertEnabled;
         TempAlertDegrees = src.TempAlertDegrees;
@@ -954,6 +958,8 @@ public sealed class AppSettings
             TrueColorEnabled = TrueColorEnabled,
             TrueColorConfirmed = TrueColorConfirmed,
             UpdateCheckEnabled = UpdateCheckEnabled,
+            OfflineMode = OfflineMode,
+            LiteMode = LiteMode,
             HotkeysEnabled = HotkeysEnabled,
             TrayShowStatus = TrayShowStatus, TrayShowFanCurve = TrayShowFanCurve, TrayShowModels = TrayShowModels,
             TrayShowReport = TrayShowReport, TrayShowChangeLog = TrayShowChangeLog,

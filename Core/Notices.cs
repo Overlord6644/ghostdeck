@@ -21,6 +21,7 @@ public static class Notices
     public static async Task<List<Notice>> FetchAsync(Version current, IReadOnlyCollection<string> seen)
     {
         var list = new List<Notice>();
+        if (NetPolicy.Offline) return list;   // fork: offline mode
         try
         {
             using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };

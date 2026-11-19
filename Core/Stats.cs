@@ -307,6 +307,7 @@ public static class Stats
     /// </summary>
     public static async Task<(SendResult result, string info)> SendAsync(byte[] body, int powBits, CancellationToken ct)
     {
+        if (NetPolicy.Offline) return (SendResult.Unreachable, "offline mode");   // fork
         try
         {
             string nonce = await Task.Run(() => SolvePow(body, powBits, ct), ct).ConfigureAwait(false);
@@ -479,6 +480,7 @@ public static class Stats
     /// </summary>
     public static async Task<(Summary? summary, bool fresh)> FetchSummaryAsync(CancellationToken ct)
     {
+        if (NetPolicy.Offline) return (LoadCached(), false);   // fork: offline mode
         try
         {
             using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };

@@ -227,6 +227,7 @@ public sealed class MainForm : Form
         var asIcons = _d.Settings.IconTabs;
         foreach (var (tab, key, glyph) in TabDefs)
         {
+            if (tab == MainTab.Dashboard && _d.Settings.LiteMode) continue;   // fork SummitPro: lite mode hides the Dashboard
             if (asIcons.Contains(tab.ToString()))
             {
                 var gb = new GlyphButton { Size = IconBtnSize, Glyph = glyph, Tag = tab };
@@ -360,7 +361,7 @@ public sealed class MainForm : Form
     /// The tab the window opens on when nothing asks for a specific one: the first show, the
     /// tray panel entry and a second launch of the exe (Settings → General → Start tab, 1.44).
     /// </summary>
-    public static MainTab StartTabOf(AppSettings s) => s.StartTab == 1 ? MainTab.Dashboard : MainTab.Scenarios;
+    public static MainTab StartTabOf(AppSettings s) => s.StartTab == 1 && !s.LiteMode ? MainTab.Dashboard : MainTab.Scenarios;
 
     public void ShowTab(MainTab tab, bool fromStrip = false)
     {

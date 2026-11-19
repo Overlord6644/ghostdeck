@@ -438,6 +438,8 @@ public static class ModelDb
                 return null;
             }
         }
+        // fork: offline mode = the compiled tables only (we maintain Devices.cs ourselves)
+        if (NetPolicy.Offline) return null;
         try
         {
             if (!File.Exists(CachePath) || !File.Exists(CacheSigPath)) return null;
@@ -515,6 +517,7 @@ public static class ModelDb
     /// </summary>
     public static async Task<int?> FetchUpdateAsync()
     {
+        if (NetPolicy.Offline) return null;   // fork: offline mode
         try
         {
             using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
